@@ -1,0 +1,1 @@
+<Canvas camera={{ position: [0, 2, 20], fov: 35 }} style={{ height: "100vh", background: "#000" }}>
