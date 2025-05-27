@@ -7,7 +7,7 @@ export default function Building() {
     <primitive
       object={scene}
       scale={0.1}
-      position={[0, 0, 0]}
+      position={[0, -1, 0]}
       rotation={[0, -Math.PI / 2.5, 0]} // tweak for initial angle
     />
   );
