@@ -59,10 +59,10 @@ export default function Player({ onEnterZone, onPressE }) {
     const front = new THREE.Vector3();
     const side = new THREE.Vector3();
 
-    if (keys["w"]) front.z = -1;
-    if (keys["s"]) front.z = 1;
-    if (keys["a"]) side.x = -1;
-    if (keys["d"]) side.x = 1;
+    if (keys["w"]) front.z = 1;
+    if (keys["s"]) front.z = -1;
+    if (keys["a"]) side.x = 1;
+    if (keys["d"]) side.x = -1;
 
     direction.addVectors(front, side).normalize();
 
@@ -86,28 +86,30 @@ export default function Player({ onEnterZone, onPressE }) {
     if (onEnterZone) onEnterZone(pos);
 
     // Camera follow & look direction
-    const camOffset = new THREE.Vector3(
-      Math.sin(yaw.current) * 5,
-      3,
-      Math.cos(yaw.current) * 5
-    );
+    // const camOffset = new THREE.Vector3(
+    //   Math.sin(yaw.current) * 5,
+    //   3,
+    //   Math.cos(yaw.current) * 5
+    // );
+    const camOffset = new THREE.Vector3(0, 1.6, 0);
     const camPos = new THREE.Vector3(pos.x, pos.y, pos.z).add(camOffset);
     camera.position.lerp(camPos, 0.1);
 
     const lookTarget = new THREE.Vector3(
-      pos.x,
-      pos.y + 1 + Math.sin(pitch.current),
-      pos.z
+      pos.x + Math.sin(yaw.current),
+      pos.y + 1.6 + Math.sin(pitch.current),
+      pos.z + Math.cos(yaw.current)
     );
     camera.lookAt(lookTarget);
   });
 
   return (
-    <RigidBody name="player" ref={ref} type="kinematicPosition" colliders="ball">
-      <mesh >
-        <sphereGeometry args={[0.5]} />
-        <meshStandardMaterial color="hotpink" />
-      </mesh>
-    </RigidBody>
+    // <RigidBody name="player" ref={ref} type="kinematicPosition" colliders="ball">
+    //   <mesh >
+    //     <sphereGeometry args={[0.5]} />
+    //     <meshStandardMaterial color="hotpink" />
+    //   </mesh>
+    // </RigidBody>
+    <RigidBody ref={ref} name="player" type="kinematicPosition" colliders="ball" />
   );
 }
