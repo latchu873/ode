@@ -8,27 +8,61 @@ import InteractionZone from "./InteractionZone";
 import OnboardingScene from "./OnboardingScene";
 
 export default function ModelViewer() {
-  const [scene, setScene] = useState("main"); // 'main' or 'onboarding'
+  const [scene, setScene] = useState("main");
   const [showPrompt, setShowPrompt] = useState(false);
   const [showFloorModal, setShowFloorModal] = useState(false);
+  const [hrDialogueIndex, setHrDialogueIndex] = useState(-1);
+  const [nearIDCard, setNearIDCard] = useState(false);
+  const [collectedID, setCollectedID] = useState(false);
+
+  const hrDialogues = [
+    "Welcome to the CITICORP!",
+    "You will be walked through the orientation process.",
+    "You'll find your assets in the main lobby.",
+    "After collecting your assets, you can choose a floor to work on.",
+    "Good luck on your first day!",
+  ];
 
   const handleEnterZone = (pos) => {
-    const inZone =
-      Math.abs(pos.x - 4.5) < 1.5 &&
-      Math.abs(pos.z - (-0.5)) < 1.5;
+    if (scene === "main") {
+      const inZone = Math.abs(pos.x - 4.5) < 1.5 && Math.abs(pos.z + 0.5) < 1.5;
+      setShowPrompt(inZone);
+    } else {
+      const nearHR = Math.abs(pos.x - 0) < 1.5 && Math.abs(pos.z - 20) < 1.5;
+      const nearCard = !collectedID && Math.abs(pos.x - 0) < 1.5 && Math.abs(pos.z + 10) < 1.5;
 
-    if (inZone) {
-      console.log("Entered interaction zone at position:", pos);
+      setShowPrompt(nearHR);
+      setNearIDCard(nearCard);
     }
-    setShowPrompt(inZone);
   };
 
   const handlePressE = () => {
     if (scene === "main" && showPrompt) {
       setScene("onboarding");
-    } else if (scene === "onboarding" && showPrompt) {
-      setShowFloorModal(true);
+    } else if (scene === "onboarding") {
+      if (nearIDCard && !collectedID) {
+        setCollectedID(true);
+        alert("✅ ID Card collected!");
+      } else if (showPrompt) {
+        if (hrDialogueIndex < hrDialogues.length - 1) {
+          setHrDialogueIndex((prev) => prev + 1);
+        } else if (hrDialogueIndex === hrDialogues.length - 1) {
+          setHrDialogueIndex(-1);
+        } else {
+          setShowFloorModal(true);
+        }
+      }
     }
+  };
+
+  const promptStyle = {
+    position: "absolute",
+    bottom: 40,
+    width: "100%",
+    textAlign: "center",
+    color: "white",
+    fontSize: 24,
+    zIndex: 10,
   };
 
   return (
@@ -50,24 +84,42 @@ export default function ModelViewer() {
         }}
       />
 
-      {/* 📝 Interaction Prompt */}
+      {/* 📝 Prompts */}
       {scene === "main" && showPrompt && (
+        <div style={promptStyle}>Press E to interact</div>
+      )}
+
+      {scene === "onboarding" && nearIDCard && !collectedID && (
+        <div style={promptStyle}>Press E to collect ID card</div>
+      )}
+
+      {scene === "onboarding" && showPrompt && !nearIDCard && hrDialogueIndex === -1 && !showFloorModal && (
+        <div style={promptStyle}>Press E to talk</div>
+      )}
+
+      {/* 💬 HR Dialogue */}
+      {scene === "onboarding" && hrDialogueIndex >= 0 && (
         <div
           style={{
             position: "absolute",
-            bottom: 40,
-            width: "100%",
-            textAlign: "center",
+            bottom: 100,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#222",
             color: "white",
-            fontSize: 24,
-            zIndex: 10,
+            padding: "15px 25px",
+            borderRadius: "8px",
+            fontSize: "18px",
+            zIndex: 20,
+            textAlign: "center",
+            maxWidth: "80%",
           }}
         >
-          Press "E" to interact
+          {hrDialogues[hrDialogueIndex]}
         </div>
       )}
 
-      {/* 🗂️ Floor Selection Modal */}
+      {/* 🗂️ Floor Modal */}
       {scene === "onboarding" && showFloorModal && (
         <div
           style={{
@@ -147,8 +199,8 @@ export default function ModelViewer() {
               </>
             ) : (
               <>
-                <OnboardingScene />
-                <InteractionZone />
+                <OnboardingScene collectedID={collectedID} />
+                <InteractionZone position={[0, 0.5, 20]} />
                 <Player onEnterZone={handleEnterZone} onPressE={handlePressE} />
               </>
             )}

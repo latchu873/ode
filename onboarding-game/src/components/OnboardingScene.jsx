@@ -1,14 +1,17 @@
-// OnboardingScene.jsx
 import React from "react";
 import { useGLTF } from "@react-three/drei";
 import InteractionZone from "./InteractionZone";
+import HRCharacter from "./HRCharacter";
+import IDCard from "./IDCard";
 
-export default function OnboardingScene() {
-  const { scene } = useGLTF("/models/office/onboarding.gltf"); // assumes correct public path
+export default function OnboardingScene( {collectedIDCard} ) {
+  const { scene } = useGLTF("/models/office/onboarding3.gltf"); // assumes correct public path
 
   return (
     <>
-    <primitive object={scene} scale={0.1} position={[0, 0, 0]} />
+    <primitive object={scene} scale={1} position={[2, 0, 0]} />
+    <HRCharacter />
+    <IDCard collected={collectedIDCard} />
     <InteractionZone position={[-15,0,0]}/>
     </>
     
