@@ -12,7 +12,7 @@ export default function OnboardingScene( {collectedIDCard} ) {
     <primitive object={scene} scale={1} position={[2, 0, 0]} />
     <HRCharacter />
     <IDCard collected={collectedIDCard} />
-    <InteractionZone position={[-15,0,0]}/>
+    <InteractionZone position={[0,0.5,20]} name="floor"/>
     </>
     
   );

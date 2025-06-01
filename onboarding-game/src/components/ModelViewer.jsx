@@ -14,6 +14,15 @@ export default function ModelViewer() {
   const [hrDialogueIndex, setHrDialogueIndex] = useState(-1);
   const [nearIDCard, setNearIDCard] = useState(false);
   const [collectedID, setCollectedID] = useState(false);
+  const [nearFloor, setNearFloor] = useState(false);
+  const [nearFileName, setNearFileName] = useState(null); // ✅ File interaction
+
+  // ✅ Define positions and file names
+  const fileZones = [
+    { name: "sample.pdf", position: [2, 0, -1] },
+    { name: "tokmakov2019.pdf", position: [-3, 0, 3] },
+    { name: "ssrn-4365306.pdf", position: [1, 0, 6] },
+  ];
 
   const hrDialogues = [
     "Welcome to the CITICORP!",
@@ -30,9 +39,22 @@ export default function ModelViewer() {
     } else {
       const nearHR = Math.abs(pos.x - 0) < 1.5 && Math.abs(pos.z - 20) < 1.5;
       const nearCard = !collectedID && Math.abs(pos.x - 0) < 1.5 && Math.abs(pos.z + 10) < 1.5;
+      const nearFloorTrigger = collectedID && hrDialogueIndex === -1 && Math.abs(pos.x - 0) < 1.5 && Math.abs(pos.z + 5) < 1.5;
 
       setShowPrompt(nearHR);
       setNearIDCard(nearCard);
+      setNearFloor(nearFloorTrigger);
+
+      // ✅ Detect proximity to any file zone
+      let nearbyFile = null;
+      for (const file of fileZones) {
+        const [fx, , fz] = file.position;
+        if (Math.abs(pos.x - fx) < 1.2 && Math.abs(pos.z - fz) < 1.2) {
+          nearbyFile = file.name;
+          break;
+        }
+      }
+      setNearFileName(nearbyFile);
     }
   };
 
@@ -48,9 +70,12 @@ export default function ModelViewer() {
           setHrDialogueIndex((prev) => prev + 1);
         } else if (hrDialogueIndex === hrDialogues.length - 1) {
           setHrDialogueIndex(-1);
-        } else {
-          setShowFloorModal(true);
         }
+      } else if (nearFloor) {
+        setShowFloorModal(true);
+      } else if (nearFileName) {
+        // ✅ Open file from backend
+        window.open(`http://localhost:5000/files/${nearFileName}`, "_blank");
       }
     }
   };
@@ -88,16 +113,20 @@ export default function ModelViewer() {
       {scene === "main" && showPrompt && (
         <div style={promptStyle}>Press E to interact</div>
       )}
-
       {scene === "onboarding" && nearIDCard && !collectedID && (
         <div style={promptStyle}>Press E to collect ID card</div>
       )}
-
       {scene === "onboarding" && showPrompt && !nearIDCard && hrDialogueIndex === -1 && !showFloorModal && (
         <div style={promptStyle}>Press E to talk</div>
       )}
+      {scene === "onboarding" && nearFloor && (
+        <div style={promptStyle}>Press E to choose a floor</div>
+      )}
+      {scene === "onboarding" && nearFileName && (
+        <div style={promptStyle}>Press E to open {nearFileName}</div>
+      )}
 
-      {/* 💬 HR Dialogue */}
+      {/* 💬 HR Dialogue Box */}
       {scene === "onboarding" && hrDialogueIndex >= 0 && (
         <div
           style={{
@@ -136,9 +165,11 @@ export default function ModelViewer() {
             boxShadow: "0 0 20px rgba(0,0,0,0.5)",
           }}
         >
-          <h3 style={{ marginBottom: "10px", textAlign: "center" }}>Select Floor</h3>
+          <h3 style={{ marginBottom: "10px", textAlign: "center" }}>
+            Select Floor
+          </h3>
           <ul style={{ listStyle: "none", padding: 0 }}>
-            {["Floor 1", "Floor 2", "Floor 3"].map((floor) => (
+            {["Compliance Room", "BTSS", "Terrace"].map((floor) => (
               <li
                 key={floor}
                 style={{
@@ -195,13 +226,29 @@ export default function ModelViewer() {
               <>
                 <Building />
                 <InteractionZone />
-                <Player onEnterZone={handleEnterZone} onPressE={handlePressE} />
+                <Player
+                  onEnterZone={handleEnterZone}
+                  onPressE={handlePressE}
+                />
               </>
             ) : (
               <>
                 <OnboardingScene collectedID={collectedID} />
-                <InteractionZone position={[0, 0.5, 20]} />
-                <Player onEnterZone={handleEnterZone} onPressE={handlePressE} />
+                <InteractionZone position={[0, 0.5, 20]} /> {/* HR */}
+                <InteractionZone position={[0, 0.5, -5]} /> {/* Floor trigger */}
+
+                {/* 📦 Optional: file markers for debug */}
+                {fileZones.map(({ name, position }) => (
+                  <mesh key={name} position={[...position]}>
+                    <boxGeometry args={[0.5, 0.1, 0.5]} />
+                    <meshStandardMaterial color="skyblue" />
+                  </mesh>
+                ))}
+
+                <Player
+                  onEnterZone={handleEnterZone}
+                  onPressE={handlePressE}
+                />
               </>
             )}
           </Physics>
