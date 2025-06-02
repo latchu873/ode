@@ -1,12 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useGLTF } from "@react-three/drei";
 
 export default function IDCard({ collected }) {
   const groupRef = useRef();
   const { scene } = useGLTF("/models/office/onboarding3.glb");
 
-  // Find and isolate the ID card mesh by name (adjust if needed)
-  const card = scene.getObjectByName("Object_6") || scene.children[0];
+  // ✅ Clone scene to avoid cross-scene mutations
+  const clonedScene = useMemo(() => scene.clone(true), [scene]);
+
+  // Find and isolate the ID card mesh by name
+  const card = useMemo(() => {
+    return clonedScene.getObjectByName("Object_6") || clonedScene.children[0];
+  }, [clonedScene]);
 
   useEffect(() => {
     if (collected && card) {

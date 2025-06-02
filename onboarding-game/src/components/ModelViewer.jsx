@@ -1,27 +1,27 @@
+// ModelViewer.jsx
 import React, { Suspense, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
 import { Environment } from "@react-three/drei";
 import Player from "./Player";
-import Building from "./Building";
-import InteractionZone from "./InteractionZone";
 import OnboardingScene from "./OnboardingScene";
+import BTSS from "./BTSS";
+import Compliance from "./Compliance";
 
 export default function ModelViewer() {
-  const [scene, setScene] = useState("main");
+  const [scene, setScene] = useState("onboarding");
   const [showPrompt, setShowPrompt] = useState(false);
   const [showFloorModal, setShowFloorModal] = useState(false);
   const [hrDialogueIndex, setHrDialogueIndex] = useState(-1);
   const [nearIDCard, setNearIDCard] = useState(false);
   const [collectedID, setCollectedID] = useState(false);
   const [nearFloor, setNearFloor] = useState(false);
-  const [nearFileName, setNearFileName] = useState(null); // ✅ File interaction
+  const [nearFileName, setNearFileName] = useState(null);
 
-  // ✅ Define positions and file names
   const fileZones = [
-    { name: "sample.pdf", position: [2, 0, -1] },
-    { name: "tokmakov2019.pdf", position: [-3, 0, 3] },
-    { name: "ssrn-4365306.pdf", position: [1, 0, 6] },
+    { name: "sample.pdf", position: [7.5, 0, 5] },
+    { name: "tokmakov2019.pdf", position: [2, 0, 5] },
+    { name: "ssrn-4365306.pdf", position: [2, 0, 10] },
   ];
 
   const hrDialogues = [
@@ -33,19 +33,24 @@ export default function ModelViewer() {
   ];
 
   const handleEnterZone = (pos) => {
-    if (scene === "main") {
-      const inZone = Math.abs(pos.x - 4.5) < 1.5 && Math.abs(pos.z + 0.5) < 1.5;
-      setShowPrompt(inZone);
-    } else {
-      const nearHR = Math.abs(pos.x - 0) < 1.5 && Math.abs(pos.z - 20) < 1.5;
-      const nearCard = !collectedID && Math.abs(pos.x - 0) < 1.5 && Math.abs(pos.z + 10) < 1.5;
-      const nearFloorTrigger = collectedID && hrDialogueIndex === -1 && Math.abs(pos.x - 0) < 1.5 && Math.abs(pos.z + 5) < 1.5;
+    if (scene === "btss") return;
+
+    if (scene === "onboarding") {
+      const nearHR = Math.abs(pos.x - 1) < 1.5 && Math.abs(pos.z - 0) < 1.5;
+      const nearCard =
+        !collectedID && Math.abs(pos.x - 1) < 1.5 && Math.abs(pos.z + 2) < 1.5;
+      const nearFloorTrigger =
+        collectedID &&
+        hrDialogueIndex === -1 &&
+        Math.abs(pos.x - 0) < 1.5 &&
+        Math.abs(pos.z - 4) < 1.5;
 
       setShowPrompt(nearHR);
       setNearIDCard(nearCard);
       setNearFloor(nearFloorTrigger);
+    }
 
-      // ✅ Detect proximity to any file zone
+    if (scene === "compliance") {
       let nearbyFile = null;
       for (const file of fileZones) {
         const [fx, , fz] = file.position;
@@ -59,25 +64,53 @@ export default function ModelViewer() {
   };
 
   const handlePressE = () => {
-    if (scene === "main" && showPrompt) {
-      setScene("onboarding");
-    } else if (scene === "onboarding") {
+    if (scene === "onboarding") {
       if (nearIDCard && !collectedID) {
         setCollectedID(true);
         alert("✅ ID Card collected!");
       } else if (showPrompt) {
         if (hrDialogueIndex < hrDialogues.length - 1) {
           setHrDialogueIndex((prev) => prev + 1);
-        } else if (hrDialogueIndex === hrDialogues.length - 1) {
+        } else {
           setHrDialogueIndex(-1);
         }
       } else if (nearFloor) {
         setShowFloorModal(true);
-      } else if (nearFileName) {
-        // ✅ Open file from backend
-        window.open(`http://localhost:5000/files/${nearFileName}`, "_blank");
       }
     }
+
+    // if (scene === "compliance" && nearFileName) {
+    //   console.log(`Opening file: ${nearFileName}`);
+    //   window.open(`http://localhost:5000/files/${nearFileName}`, "_blank");
+    // }
+
+    if (scene === "compliance") {
+  if (nearFileName) {
+    console.log(`Opening file: ${nearFileName}`);
+    window.open(`http://localhost:5000/files/${nearFileName}`, "_blank");
+  } else if (showPrompt) {
+    setShowFloorModal(true);
+  }
+}
+
+  };
+
+  const handleFloorSelect = (floor) => {
+    setShowFloorModal(false);
+    if (floor === "BTSS") {
+      setScene("btss");
+    } else if (floor === "Reception") {
+      setScene("onboarding");
+      setHrDialogueIndex(-1);
+      setNearIDCard(false);
+      setNearFileName(null);
+      setShowPrompt(false);
+    } else if (floor === "Compliance") {
+      setScene("compliance");
+    } else {
+      alert(`Selected: ${floor}`);
+    }
+    setShowFloorModal(false);
   };
 
   const promptStyle = {
@@ -92,7 +125,6 @@ export default function ModelViewer() {
 
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw" }}>
-      {/* 🎯 Crosshair */}
       <div
         style={{
           position: "absolute",
@@ -109,69 +141,64 @@ export default function ModelViewer() {
         }}
       />
 
-      {/* 📝 Prompts */}
-      {scene === "main" && showPrompt && (
-        <div style={promptStyle}>Press E to interact</div>
+      {scene === "onboarding" && hrDialogueIndex >= 0 && (
+        <div style={{
+          position: "absolute",
+          bottom: 100,
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "#222",
+          color: "white",
+          padding: "15px 25px",
+          borderRadius: "8px",
+          fontSize: "18px",
+          zIndex: 20,
+          textAlign: "center",
+          maxWidth: "80%",
+        }}>
+          {hrDialogues[hrDialogueIndex]}
+        </div>
       )}
+
       {scene === "onboarding" && nearIDCard && !collectedID && (
         <div style={promptStyle}>Press E to collect ID card</div>
       )}
-      {scene === "onboarding" && showPrompt && !nearIDCard && hrDialogueIndex === -1 && !showFloorModal && (
+      {scene === "onboarding" && showPrompt && hrDialogueIndex === -1 && !showFloorModal && (
         <div style={promptStyle}>Press E to talk</div>
       )}
       {scene === "onboarding" && nearFloor && (
         <div style={promptStyle}>Press E to choose a floor</div>
       )}
-      {scene === "onboarding" && nearFileName && (
+      {scene === "compliance" && nearFileName && (
         <div style={promptStyle}>Press E to open {nearFileName}</div>
       )}
-
-      {/* 💬 HR Dialogue Box */}
-      {scene === "onboarding" && hrDialogueIndex >= 0 && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 100,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#222",
-            color: "white",
-            padding: "15px 25px",
-            borderRadius: "8px",
-            fontSize: "18px",
-            zIndex: 20,
-            textAlign: "center",
-            maxWidth: "80%",
-          }}
-        >
-          {hrDialogues[hrDialogueIndex]}
-        </div>
+      {scene === "btss" && showPrompt && (
+        <div style={promptStyle}>Press E to open elevator</div>
+      )}
+      {scene === "compliance" && showPrompt && (
+        <div style={promptStyle}>Press E to open elevator</div>
       )}
 
-      {/* 🗂️ Floor Modal */}
-      {scene === "onboarding" && showFloorModal && (
-        <div
-          style={{
-            position: "absolute",
-            top: "20%",
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#222",
-            color: "#fff",
-            padding: "20px",
-            borderRadius: "10px",
-            zIndex: 20,
-            width: "300px",
-            boxShadow: "0 0 20px rgba(0,0,0,0.5)",
-          }}
-        >
+      {showFloorModal && (
+        <div style={{
+          position: "absolute",
+          top: "20%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "#222",
+          color: "#fff",
+          padding: "20px",
+          borderRadius: "10px",
+          zIndex: 20,
+          width: "300px",
+          boxShadow: "0 0 20px rgba(0,0,0,0.5)",
+        }}>
           <h3 style={{ marginBottom: "10px", textAlign: "center" }}>
             Select Floor
           </h3>
           <ul style={{ listStyle: "none", padding: 0 }}>
-            {["Compliance Room", "BTSS", "Terrace"].map((floor) => (
-              <li
-                key={floor}
+            {["Reception", "BTSS", "Compliance"].map((floor) => (
+              <li key={floor}
                 style={{
                   background: "#444",
                   padding: "10px",
@@ -180,23 +207,22 @@ export default function ModelViewer() {
                   cursor: "pointer",
                   textAlign: "center",
                 }}
-                onClick={() => alert(`Selected: ${floor}`)}
+                onClick={() => handleFloorSelect(floor)}
               >
                 {floor}
               </li>
             ))}
           </ul>
-          <button
-            style={{
-              marginTop: "10px",
-              padding: "8px 12px",
-              width: "100%",
-              borderRadius: "5px",
-              border: "none",
-              background: "#888",
-              color: "white",
-              cursor: "pointer",
-            }}
+          <button style={{
+            marginTop: "10px",
+            padding: "8px 12px",
+            width: "100%",
+            borderRadius: "5px",
+            border: "none",
+            background: "#888",
+            color: "white",
+            cursor: "pointer",
+          }}
             onClick={() => setShowFloorModal(false)}
           >
             Close
@@ -204,7 +230,6 @@ export default function ModelViewer() {
         </div>
       )}
 
-      {/* 🧱 Canvas */}
       <Canvas
         camera={{ position: [0, 2, 10], fov: 40 }}
         style={{
@@ -222,34 +247,47 @@ export default function ModelViewer() {
         <Suspense fallback={null}>
           <Environment preset="city" />
           <Physics>
-            {scene === "main" ? (
+            {scene === "onboarding" && (
               <>
-                <Building />
-                <InteractionZone />
+                <OnboardingScene collectedIDCard={collectedID} />
                 <Player
+                  key={scene}
                   onEnterZone={handleEnterZone}
                   onPressE={handlePressE}
+                  initialPosition={[3, 0, 0]}
+                  initialYaw={-Math.PI / 2}
                 />
               </>
-            ) : (
-              <>
-                <OnboardingScene collectedID={collectedID} />
-                <InteractionZone position={[0, 0.5, 20]} /> {/* HR */}
-                <InteractionZone position={[0, 0.5, -5]} /> {/* Floor trigger */}
+            )}
 
-                {/* 📦 Optional: file markers for debug */}
-                {fileZones.map(({ name, position }) => (
-                  <mesh key={name} position={[...position]}>
-                    <boxGeometry args={[0.5, 0.1, 0.5]} />
-                    <meshStandardMaterial color="skyblue" />
-                  </mesh>
-                ))}
+            {scene === "btss" && (
+              <BTSS
+                key={scene}
+                onEnterElevatorZone={(inZone) => {
+                  if (inZone) setShowPrompt(true);
+                  else setShowPrompt(false);
+                }}
+                onPressElevator={() => {
+                  if (showPrompt) setShowFloorModal(true);
+                }}
+                playerPosition={[-10, 0, -7]}
+              />
+            )}
 
-                <Player
-                  onEnterZone={handleEnterZone}
-                  onPressE={handlePressE}
-                />
-              </>
+            {scene === "compliance" && (
+              <Compliance
+              key={scene}
+              onPressE={handlePressE}
+              onEnterZone={handleEnterZone}
+                onEnterElevatorZone={(inZone) => {
+                  if (inZone) setShowPrompt(true);
+                  else setShowPrompt(false);
+                }}
+                // onPressElevator={() => {
+                //   if (showPrompt) setShowFloorModal(true);
+                // }}
+                playerPosition={[-10, 0, -7]}
+              />
             )}
           </Physics>
         </Suspense>

@@ -3,7 +3,7 @@ import { RigidBody } from "@react-three/rapier";
 import { useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 
-export default function Player({ onEnterZone, onPressE }) {
+export default function Player({ onEnterZone, onPressE}) {
   const ref = useRef();
   const { camera } = useThree();
   const [keys, setKeys] = useState({});
@@ -44,6 +44,12 @@ export default function Player({ onEnterZone, onPressE }) {
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
+
+  useEffect(() => {
+  // Reset camera when component mounts
+  camera.position.set(0, 2, 10);
+  camera.lookAt(0, 1.6, 0);
+}, []);
 
   // Movement and camera update
   useFrame(() => {
@@ -110,6 +116,6 @@ export default function Player({ onEnterZone, onPressE }) {
     //     <meshStandardMaterial color="hotpink" />
     //   </mesh>
     // </RigidBody>
-    <RigidBody ref={ref} name="player" type="kinematicPosition" colliders="ball" />
+    <RigidBody ref={ref} name="player" type="kinematicPosition" colliders="ball" position={[3,0,0]} rotation={[0,Math.PI/2,0]}/>
   );
 }

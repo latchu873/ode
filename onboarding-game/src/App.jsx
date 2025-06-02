@@ -3,8 +3,6 @@ import { Canvas } from '@react-three/fiber'
 import { Suspense } from 'react'
 import { PointerLockControls } from '@react-three/drei'
 import Scene from './components/Scene'
-import PlayerControls from './components/PlayerControls'
-import TaskManager from './components/TaskManager'
 import ModelViewer from './components/ModelViewer'
 // import HUD from './components/HUD'
 
