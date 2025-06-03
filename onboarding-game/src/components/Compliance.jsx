@@ -13,12 +13,21 @@ export default function Compliance({ onEnterElevatorZone, playerPosition, onEnte
   const { scene } = useGLTF("/models/office/first_level.glb");
 
   const elevatorZone = [4, 0, 0]; // Adjust this if needed
+  const quizZone = [5, 0, 2]; // example location
+
 
   const handleZoneCheck = (pos) => {
     const inZone =
       Math.abs(pos.x - elevatorZone[0]) < 1.5 &&
       Math.abs(pos.z - elevatorZone[2]) < 1.5;
     onEnterElevatorZone?.(inZone);
+
+      const inQuizZone =
+    Math.abs(pos.x - quizZone[0]) < 1.5 &&
+    Math.abs(pos.z - quizZone[2]) < 1.5;
+  if (inQuizZone) {
+    onEnterZone?.({ type: "quiz" });
+  }
   };
 
   return (
@@ -32,6 +41,11 @@ export default function Compliance({ onEnterElevatorZone, playerPosition, onEnte
           <meshBasicMaterial color="blue" transparent opacity={0.4} />
         </mesh>
       ))}
+
+      <mesh position={quizZone}>
+  <boxGeometry args={[1.5, 0.1, 1.5]} />
+  <meshBasicMaterial color="green" transparent opacity={0.4} />
+</mesh>
 
       <Player
         // onEnterZone={handleZoneCheck}

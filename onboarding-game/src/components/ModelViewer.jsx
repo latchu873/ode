@@ -7,6 +7,8 @@ import Player from "./Player";
 import OnboardingScene from "./OnboardingScene";
 import BTSS from "./BTSS";
 import Compliance from "./Compliance";
+import QuizModal from "./QuizModal";
+import quizQuestions from "./questions";
 
 export default function ModelViewer() {
   const [scene, setScene] = useState("onboarding");
@@ -17,6 +19,10 @@ export default function ModelViewer() {
   const [collectedID, setCollectedID] = useState(false);
   const [nearFloor, setNearFloor] = useState(false);
   const [nearFileName, setNearFileName] = useState(null);
+
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [confirmQuiz, setConfirmQuiz] = useState(false);
+  const [nearQuizZone, setNearQuizZone] = useState(false);
 
   const fileZones = [
     { name: "sample.pdf", position: [7.5, 0, 5] },
@@ -37,13 +43,8 @@ export default function ModelViewer() {
 
     if (scene === "onboarding") {
       const nearHR = Math.abs(pos.x - 1) < 1.5 && Math.abs(pos.z - 0) < 1.5;
-      const nearCard =
-        !collectedID && Math.abs(pos.x - 1) < 1.5 && Math.abs(pos.z + 2) < 1.5;
-      const nearFloorTrigger =
-        collectedID &&
-        hrDialogueIndex === -1 &&
-        Math.abs(pos.x - 0) < 1.5 &&
-        Math.abs(pos.z - 4) < 1.5;
+      const nearCard = !collectedID && Math.abs(pos.x - 1) < 1.5 && Math.abs(pos.z + 2) < 1.5;
+      const nearFloorTrigger = collectedID && hrDialogueIndex === -1 && Math.abs(pos.x - 0) < 1.5 && Math.abs(pos.z - 4) < 1.5;
 
       setShowPrompt(nearHR);
       setNearIDCard(nearCard);
@@ -60,6 +61,10 @@ export default function ModelViewer() {
         }
       }
       setNearFileName(nearbyFile);
+
+      const quizZoneX = 5, quizZoneZ = 2;
+      const inQuiz = Math.abs(pos.x - quizZoneX) < 1.5 && Math.abs(pos.z - quizZoneZ) < 1.5;
+      setNearQuizZone(inQuiz);
     }
   };
 
@@ -79,27 +84,37 @@ export default function ModelViewer() {
       }
     }
 
-    // if (scene === "compliance" && nearFileName) {
-    //   console.log(`Opening file: ${nearFileName}`);
-    //   window.open(`http://localhost:5000/files/${nearFileName}`, "_blank");
-    // }
-
     if (scene === "compliance") {
-  if (nearFileName) {
-    console.log(`Opening file: ${nearFileName}`);
-    window.open(`http://localhost:5000/files/${nearFileName}`, "_blank");
-  } else if (showPrompt) {
-    setShowFloorModal(true);
-  }
-}
+      if (nearFileName) {
+        window.open(`http://localhost:5000/files/${nearFileName}`, "_blank");
+      } else if (showPrompt) {
+        setShowFloorModal(true);
+      } else if (nearQuizZone) {
+        setConfirmQuiz(true);
+      }
+    }
+  };
 
+  const handleQuizComplete = async (score, total, answers) => {
+    const completed = score >= 4;
+    try {
+      const res = await fetch("http://localhost:5000/submit-quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers, score, completed }),
+      });
+      const json = await res.json();
+      console.log("✅ Submitted to backend:", json);
+      alert(completed ? "🎉 Module completed!" : "❌ You need at least 4 correct answers.");
+    } catch (err) {
+      console.error("Error submitting quiz:", err);
+    }
   };
 
   const handleFloorSelect = (floor) => {
     setShowFloorModal(false);
-    if (floor === "BTSS") {
-      setScene("btss");
-    } else if (floor === "Reception") {
+    if (floor === "BTSS") setScene("btss");
+    else if (floor === "Reception") {
       setScene("onboarding");
       setHrDialogueIndex(-1);
       setNearIDCard(false);
@@ -125,60 +140,63 @@ export default function ModelViewer() {
 
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw" }}>
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "8px",
-          height: "8px",
-          borderRadius: "50%",
-          backgroundColor: "white",
-          opacity: 0.8,
-          pointerEvents: "none",
-          zIndex: 10,
-        }}
-      />
+      <div style={{
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: "8px",
+        height: "8px",
+        borderRadius: "50%",
+        backgroundColor: "white",
+        opacity: 0.8,
+        pointerEvents: "none",
+        zIndex: 10,
+      }} />
 
+      {/* Prompts */}
       {scene === "onboarding" && hrDialogueIndex >= 0 && (
-        <div style={{
-          position: "absolute",
-          bottom: 100,
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "#222",
-          color: "white",
-          padding: "15px 25px",
-          borderRadius: "8px",
-          fontSize: "18px",
-          zIndex: 20,
-          textAlign: "center",
-          maxWidth: "80%",
-        }}>
-          {hrDialogues[hrDialogueIndex]}
-        </div>
+        <div style={{ ...promptStyle, bottom: 100 }}>{hrDialogues[hrDialogueIndex]}</div>
       )}
-
-      {scene === "onboarding" && nearIDCard && !collectedID && (
-        <div style={promptStyle}>Press E to collect ID card</div>
-      )}
+      {scene === "onboarding" && nearIDCard && !collectedID && <div style={promptStyle}>Press E to collect ID card</div>}
       {scene === "onboarding" && showPrompt && hrDialogueIndex === -1 && !showFloorModal && (
         <div style={promptStyle}>Press E to talk</div>
       )}
-      {scene === "onboarding" && nearFloor && (
-        <div style={promptStyle}>Press E to choose a floor</div>
-      )}
-      {scene === "compliance" && nearFileName && (
-        <div style={promptStyle}>Press E to open {nearFileName}</div>
-      )}
-      {scene === "btss" && showPrompt && (
-        <div style={promptStyle}>Press E to open elevator</div>
-      )}
-      {scene === "compliance" && showPrompt && (
-        <div style={promptStyle}>Press E to open elevator</div>
+      {scene === "onboarding" && nearFloor && <div style={promptStyle}>Press E to choose a floor</div>}
+      {scene === "compliance" && nearFileName && <div style={promptStyle}>Press E to open {nearFileName}</div>}
+      {scene === "compliance" && nearQuizZone && !showQuiz && <div style={promptStyle}>Press E to take test</div>}
+      {scene === "btss" && showPrompt && <div style={promptStyle}>Press E to open elevator</div>}
+      {scene === "compliance" && showPrompt && <div style={promptStyle}>Press E to open elevator</div>}
+
+      {/* Confirmation for test */}
+      {confirmQuiz && (
+        <div style={{
+          position: "absolute",
+          top: "30%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "#222",
+          padding: "20px",
+          color: "white",
+          borderRadius: "10px",
+          zIndex: 25,
+        }}>
+          <p>Do you want to take the test?</p>
+          <button onClick={() => { setConfirmQuiz(false); setShowQuiz(true); }}>Start</button>
+          <button onClick={() => setConfirmQuiz(false)} style={{ marginLeft: 10 }}>Cancel</button>
+        </div>
       )}
 
+      {/* Quiz modal */}
+      {showQuiz && (
+        <QuizModal
+          questions={quizQuestions}
+          onClose={() => setShowQuiz(false)}
+          onComplete={handleQuizComplete}
+        />
+      )}
+
+      {/* Floor modal */}
       {showFloorModal && (
         <div style={{
           position: "absolute",
@@ -193,9 +211,7 @@ export default function ModelViewer() {
           width: "300px",
           boxShadow: "0 0 20px rgba(0,0,0,0.5)",
         }}>
-          <h3 style={{ marginBottom: "10px", textAlign: "center" }}>
-            Select Floor
-          </h3>
+          <h3 style={{ marginBottom: "10px", textAlign: "center" }}>Select Floor</h3>
           <ul style={{ listStyle: "none", padding: 0 }}>
             {["Reception", "BTSS", "Compliance"].map((floor) => (
               <li key={floor}
@@ -230,8 +246,8 @@ export default function ModelViewer() {
         </div>
       )}
 
-      <Canvas
-        camera={{ position: [0, 2, 10], fov: 40 }}
+      {/* Canvas */}
+      <Canvas camera={{ position: [0, 2, 10], fov: 40 }}
         style={{
           height: "100vh",
           width: "100vw",
@@ -240,8 +256,7 @@ export default function ModelViewer() {
           left: 0,
           zIndex: 0,
           background: "#000",
-        }}
-      >
+        }}>
         <ambientLight intensity={1.2} />
         <directionalLight position={[10, 10, 5]} intensity={1.5} />
         <Suspense fallback={null}>
@@ -259,33 +274,20 @@ export default function ModelViewer() {
                 />
               </>
             )}
-
             {scene === "btss" && (
               <BTSS
                 key={scene}
-                onEnterElevatorZone={(inZone) => {
-                  if (inZone) setShowPrompt(true);
-                  else setShowPrompt(false);
-                }}
-                onPressElevator={() => {
-                  if (showPrompt) setShowFloorModal(true);
-                }}
+                onEnterElevatorZone={(inZone) => setShowPrompt(inZone)}
+                onPressElevator={() => showPrompt && setShowFloorModal(true)}
                 playerPosition={[-10, 0, -7]}
               />
             )}
-
             {scene === "compliance" && (
               <Compliance
-              key={scene}
-              onPressE={handlePressE}
-              onEnterZone={handleEnterZone}
-                onEnterElevatorZone={(inZone) => {
-                  if (inZone) setShowPrompt(true);
-                  else setShowPrompt(false);
-                }}
-                // onPressElevator={() => {
-                //   if (showPrompt) setShowFloorModal(true);
-                // }}
+                key={scene}
+                onPressE={handlePressE}
+                onEnterZone={handleEnterZone}
+                onEnterElevatorZone={(inZone) => setShowPrompt(inZone)}
                 playerPosition={[-10, 0, -7]}
               />
             )}
