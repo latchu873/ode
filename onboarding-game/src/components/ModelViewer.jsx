@@ -23,6 +23,7 @@ export default function ModelViewer() {
   const [showQuiz, setShowQuiz] = useState(false);
   const [confirmQuiz, setConfirmQuiz] = useState(false);
   const [nearQuizZone, setNearQuizZone] = useState(false);
+  const [moduleCompleted, setModuleCompleted] = useState(false);
 
   const fileZones = [
     { name: "sample.pdf", position: [7.5, 0, 5] },
@@ -42,11 +43,11 @@ export default function ModelViewer() {
     if (scene === "btss") return;
 
     if (scene === "onboarding") {
-      const nearHR = Math.abs(pos.x - 1) < 1.5 && Math.abs(pos.z - 0) < 1.5;
+      const nearHR = Math.abs(pos.x - 1) < 0.5 && Math.abs(pos.z - 0) < 0.5;
       const nearCard = !collectedID && Math.abs(pos.x - 1) < 1.5 && Math.abs(pos.z + 2) < 1.5;
       const nearFloorTrigger = collectedID && hrDialogueIndex === -1 && Math.abs(pos.x - 0) < 1.5 && Math.abs(pos.z - 4) < 1.5;
 
-      setShowPrompt(nearHR);
+      setShowPrompt(moduleCompleted ? false : nearHR);
       setNearIDCard(nearCard);
       setNearFloor(nearFloorTrigger);
     }
@@ -62,7 +63,7 @@ export default function ModelViewer() {
       }
       setNearFileName(nearbyFile);
 
-      const quizZoneX = 5, quizZoneZ = 2;
+      const quizZoneX = 5, quizZoneZ = 10;
       const inQuiz = Math.abs(pos.x - quizZoneX) < 1.5 && Math.abs(pos.z - quizZoneZ) < 1.5;
       setNearQuizZone(inQuiz);
     }
@@ -97,6 +98,8 @@ export default function ModelViewer() {
 
   const handleQuizComplete = async (score, total, answers) => {
     const completed = score >= 4;
+    if (completed) setModuleCompleted(true);
+
     try {
       const res = await fetch("http://localhost:5000/submit-quiz", {
         method: "POST",
@@ -159,8 +162,16 @@ export default function ModelViewer() {
         <div style={{ ...promptStyle, bottom: 100 }}>{hrDialogues[hrDialogueIndex]}</div>
       )}
       {scene === "onboarding" && nearIDCard && !collectedID && <div style={promptStyle}>Press E to collect ID card</div>}
-      {scene === "onboarding" && showPrompt && hrDialogueIndex === -1 && !showFloorModal && (
-        <div style={promptStyle}>Press E to talk</div>
+      {scene === "onboarding" && !showFloorModal && (
+        <>
+          {moduleCompleted ? (
+            <div style={promptStyle}>🎉 You have completed onboarding!</div>
+          ) : (
+            showPrompt && hrDialogueIndex === -1 && (
+              <div style={promptStyle}>Press E to talk</div>
+            )
+          )}
+        </>
       )}
       {scene === "onboarding" && nearFloor && <div style={promptStyle}>Press E to choose a floor</div>}
       {scene === "compliance" && nearFileName && <div style={promptStyle}>Press E to open {nearFileName}</div>}

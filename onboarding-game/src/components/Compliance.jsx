@@ -13,7 +13,7 @@ export default function Compliance({ onEnterElevatorZone, playerPosition, onEnte
   const { scene } = useGLTF("/models/office/first_level.glb");
 
   const elevatorZone = [4, 0, 0]; // Adjust this if needed
-  const quizZone = [5, 0, 2]; // example location
+  const quizZone = [5, 0, 10]; // example location
 
 
   const handleZoneCheck = (pos) => {
