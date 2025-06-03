@@ -24,6 +24,7 @@ export default function ModelViewer() {
   const [confirmQuiz, setConfirmQuiz] = useState(false);
   const [nearQuizZone, setNearQuizZone] = useState(false);
   const [moduleCompleted, setModuleCompleted] = useState(false);
+  const [instructions, setInstructions] = useState("");
 
   const fileZones = [
     { name: "sample.pdf", position: [7.5, 0, 5] },
@@ -116,19 +117,23 @@ export default function ModelViewer() {
 
   const handleFloorSelect = (floor) => {
     setShowFloorModal(false);
-    if (floor === "BTSS") setScene("btss");
-    else if (floor === "Reception") {
+
+    if (floor === "BTSS") {
+      setScene("btss");
+      setInstructions("");
+    } else if (floor === "Reception") {
       setScene("onboarding");
+      setInstructions("");
       setHrDialogueIndex(-1);
       setNearIDCard(false);
       setNearFileName(null);
       setShowPrompt(false);
     } else if (floor === "Compliance") {
       setScene("compliance");
+      setInstructions("📘 Go to blue zones to access materials.\n✅ Go to the green zone to take the test.");
     } else {
       alert(`Selected: ${floor}`);
     }
-    setShowFloorModal(false);
   };
 
   const promptStyle = {
@@ -143,6 +148,7 @@ export default function ModelViewer() {
 
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw" }}>
+      {/* Crosshair */}
       <div style={{
         position: "absolute",
         top: "50%",
@@ -156,6 +162,27 @@ export default function ModelViewer() {
         pointerEvents: "none",
         zIndex: 10,
       }} />
+
+      {/* Instructions Box */}
+      {instructions && (
+        <div style={{
+          position: "absolute",
+          top: 20,
+          right: 20,
+          backgroundColor: "rgba(34, 34, 34, 0.9)",
+          color: "#fff",
+          padding: "10px 15px",
+          borderRadius: "8px",
+          maxWidth: "250px",
+          lineHeight: "1.4",
+          fontSize: "14px",
+          zIndex: 30
+        }}>
+          {instructions.split("\n").map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
+        </div>
+      )}
 
       {/* Prompts */}
       {scene === "onboarding" && hrDialogueIndex >= 0 && (
@@ -179,7 +206,7 @@ export default function ModelViewer() {
       {scene === "btss" && showPrompt && <div style={promptStyle}>Press E to open elevator</div>}
       {scene === "compliance" && showPrompt && <div style={promptStyle}>Press E to open elevator</div>}
 
-      {/* Confirmation for test */}
+      {/* Confirmation Modal */}
       {confirmQuiz && (
         <div style={{
           position: "absolute",
@@ -198,7 +225,7 @@ export default function ModelViewer() {
         </div>
       )}
 
-      {/* Quiz modal */}
+      {/* Quiz Modal */}
       {showQuiz && (
         <QuizModal
           questions={quizQuestions}
@@ -207,7 +234,7 @@ export default function ModelViewer() {
         />
       )}
 
-      {/* Floor modal */}
+      {/* Floor Modal */}
       {showFloorModal && (
         <div style={{
           position: "absolute",
